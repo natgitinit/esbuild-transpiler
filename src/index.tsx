@@ -1,19 +1,59 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import { useState, useEffect } from 'react';
+import ReactDOM from "react-dom/client";
+import * as esbuild from 'esbuild-wasm';
 
-const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
-);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+const container = document.getElementById("root");
+const root = ReactDOM.createRoot(container!); 
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+const App = () => {
+    const [input, setInput] = useState('');
+    const [code, setCode] = useState('');
+
+    const startService = async () => {
+        const service = await esbuild.initialize({
+            worker: true, 
+            wasmURL: '/esbuild.wasm'
+        })
+        console.log(service);
+    };
+
+    useEffect(() => {
+        try {
+            // startService();
+            esbuild.build({});
+        } catch (error) {
+            if (error instanceof Error && error.message.includes('initialize')) {
+                esbuild.initialize({
+                    worker: false,
+                    wasmURL: '/esbuild.wasm',
+                });
+            } else {
+                throw error;
+            }
+        }
+    }, []);
+
+    const onClick = async () => {
+        console.log(input);
+       esbuild
+        .transform(input, {
+            loader: 'tsx',
+            target: 'es2015',
+        })
+        .then((result) => {
+            setCode(result.code);
+        });
+    };
+
+    return <div>
+        <textarea value={input} onChange={ e => setInput(e.target.value)}></textarea>
+        <div>
+            <button onClick={onClick}>Submit</button>
+        </div>
+
+        <pre>{code}</pre>
+    </div>
+};
+
+
+root.render(<App />);
